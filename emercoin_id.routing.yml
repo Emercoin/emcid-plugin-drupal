@@ -1,0 +1,27 @@
+emercoin_id.redirect_to_emc:
+  path: 'user/emercoin-id-login'
+  defaults:
+    _controller: '\Drupal\emercoin_id\Controller\EmercoinIDController::redirectToEmc'
+    _title: 'Emercoin ID'
+  requirements:
+    _role: 'anonymous'
+  options:
+    no_cache: TRUE
+
+emercoin_id.return_from_emc:
+  path: 'user/emercoin-id-login/return'
+  defaults:
+    _controller: '\Drupal\emercoin_id\Controller\EmercoinIDController::returnFromEmc'
+    _title: 'Emercoin ID'
+  requirements:
+    _role: 'anonymous'
+  options:
+    no_cache: TRUE
+
+emercoin_id.settings_form:
+  path: 'admin/config/people/emercoin-id-login'
+  defaults:
+    _title: 'Emercoin ID settings'
+    _form: '\Drupal\emercoin_id\Form\EmercoinIDSettingsForm'
+  requirements:
+    _permission: 'administer Emercoin ID connect'

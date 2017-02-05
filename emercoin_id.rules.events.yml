@@ -1,0 +1,14 @@
+emercoin_id.user_login:
+  label: 'User has logged in via Emercoin ID'
+  category: 'User'
+  context:
+    account:
+      type: 'entity:user'
+      label: 'Logged in user'
+emercoin_id.user_created:
+  label: 'User has been created via Emercoin ID'
+  category: 'User'
+  context:
+    account:
+      type: 'entity:user'
+      label: 'Logged in user'

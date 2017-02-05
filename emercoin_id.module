@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * @file
+ *  Hook implementations for Emercoin ID module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function emercoin_id_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'emercoin_id.settings_form':
+      $output = '<h3>' . t('Configuration instructions'). '</h3>';
+      $output .= '<p>';
+      $output .= t('Configuration instructions and other useful documentation can be found <a href="@handbook-url">here</a>.', array('@handbook-url' => 'https://github.com/emercoin/emcid-plugin-drupal'));
+      $output .='</p>';
+      return $output;
+    break;
+  }
+}
+
+/**
+ * Implements hook_user_load().
+ */
+function emercoin_id_user_load($users) {
+    $query = db_select('users_data', 'u')
+        ->fields('u', array('value'))
+        ->condition('u.name',   'emc_user_id', '=')
+        ->condition('u.module', 'emercoin_id', '=')
+        ->condition('u.uid',  array_keys($users)[0],  '=')
+        ->execute();
+
+	$result = $query->fetchObject();
+
+	if ($result) {
+		// ToDo: Output this value to Drupal user's profile somehow
+		// die('Emercoin SSL Certificate ID: ' . $result->value);
+	}
+}

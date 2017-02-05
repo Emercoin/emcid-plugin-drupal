@@ -1,0 +1,9 @@
+app_id: ""
+app_secret: ""
+auth_page: ""
+token_page: ""
+infocard: ""
+post_login_path: user
+redirect_user_form: 0
+disable_admin_login: 1
+disabled_roles: []
