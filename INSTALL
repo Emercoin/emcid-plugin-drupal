@@ -8,6 +8,7 @@ Plugin installation and configuration:
  - Copy folder 'modules' to the htdocs root folder
  - Log in to the admin dashboard
  - Activate the plugin at: Extend -> List -> Authentication / Emercoin ID -> Install
+ - Configure the Emercoin ID plugin with all necessary params
  - Disable new users approving at: Configuration -> People / Account Settings -> Settings -> Registration and Cancellation:
      (*) Who can register account? -> Visitors
      (*) Uncheck the "Require email verification when a visitor creates an account"
