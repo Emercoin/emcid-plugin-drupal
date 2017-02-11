@@ -1,0 +1,16 @@
+Make the Emercoin ID Application:
+ - Log in to any Emercoin ID webserver with EMC SSL certificate (such as https://id.emercoin.net)
+ - Create the app
+ - Use URI as https://YOUR_DRUPAL_HOSTNAME/user/emercoin-id-login/return
+
+
+Plugin installation and configuration:
+ - Copy folder 'modules' to the htdocs root folder
+ - Log in to the admin dashboard
+ - Activate the plugin at: Extend -> List -> Authentication / Emercoin ID -> Install
+ - Disable new users approving at: Configuration -> People / Account Settings -> Settings -> Registration and Cancellation:
+     (*) Who can register account? -> Visitors
+     (*) Uncheck the "Require email verification when a visitor creates an account"
+   -> Save configuration
+
+After that you can see the "Emercoin ID login" button at the login page.
