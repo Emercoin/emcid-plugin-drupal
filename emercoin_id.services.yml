@@ -1,0 +1,42 @@
+services:
+  emercoin_id.emc_manager:
+    class: Drupal\emercoin_id\EmercoinIDEmcManager
+    arguments:
+      - '@logger.factory'
+      - '@event_dispatcher'
+      - '@entity_field.manager'
+      - '@url_generator.non_bubbling'
+      - '@emercoin_id.persistent_data_handler'
+
+  emercoin_id.user_manager:
+    class: Drupal\emercoin_id\EmercoinIDUserManager
+    arguments:
+      - '@config.factory'
+      - '@logger.factory'
+      - '@string_translation'
+      - '@event_dispatcher'
+      - '@entity_type.manager'
+      - '@entity_field.manager'
+      - '@token'
+      - '@transliteration'
+      - '@language_manager'
+
+  emercoin_id.post_login_manager:
+    class: Drupal\emercoin_id\EmercoinIDPostLoginManager
+    arguments:
+      - '@config.factory'
+      - '@router.request_context'
+      - '@path.validator'
+      - '@emercoin_id.persistent_data_handler'
+
+  emercoin_id.persistent_data_handler:
+    class: Drupal\emercoin_id\EmercoinIDPersistentDataHandler
+    arguments:
+      - '@session'
+
+  emercoin_id.emc_factory:
+    class: Drupal\emercoin_id\EmercoinIDFactory
+    arguments:
+      - '@config.factory'
+      - '@logger.factory'
+      - '@emercoin_id.persistent_data_handler'

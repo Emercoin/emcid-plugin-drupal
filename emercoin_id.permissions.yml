@@ -1,0 +1,3 @@
+administer emercoin id connect:
+  title: 'Administer Emercoin ID'
+  restrict access: TRUE

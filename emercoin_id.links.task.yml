@@ -1,0 +1,4 @@
+emercoin_id.redirect_to_emc:
+  route_name: emercoin_id.redirect_to_emc
+  base_route: user.page
+  title: 'Emercoin ID login'

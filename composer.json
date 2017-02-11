@@ -1,0 +1,7 @@
+{
+  "name": "drupal/emercoin_id",
+  "description": "Emercoin ID Authorization Plugin.",
+  "type": "drupal-module",
+  "homepage": "https://github.com/emercoin/emcid-plugin-drupal",
+  "license": "GPL-2.0+"
+}

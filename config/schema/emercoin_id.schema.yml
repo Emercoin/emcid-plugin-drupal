@@ -1,0 +1,33 @@
+emercoin_id.settings:
+  type: config_object
+  label: 'Emercoin ID settings'
+  mapping:
+    disabled_roles:
+      type: sequence
+      sequence:
+        type: string
+        label: 'Disable Emercoin ID login for the following roles'
+    app_id:
+      type: string
+      label: 'App Client ID'
+    app_secret:
+      type: string
+      label: 'App Secret Key'
+    auth_page:
+      type: string
+      label: 'Auth Page'
+    token_page:
+      type: string
+      label: 'Token Page'
+    infocard:
+      type: string
+      label: 'Infocard Page'
+    post_login_path:
+      type: string
+      label: 'Post login path'
+    redirect_user_form:
+      type: integer
+      label: 'Redirect new users to Drupal user form'
+    disable_admin_login:
+      type: integer
+      label: 'Disable Emercoin ID login for administrator'

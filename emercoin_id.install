@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the Emercoin ID module.
+ */
+
+/**
+ * Implements hook_requirements().
+ *
+ * May check that a compatible versions of Emercoin ID SDK has been installed
+ * with Composer, if needed in future.
+ */
+function emercoin_id_requirements($phase) {
+  return [];
+}
