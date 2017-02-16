@@ -67,7 +67,7 @@ class EmercoinIDSettingsForm extends ConfigFormBase {
       '#type' => 'details',
       '#title' => $this->t('App settings'),
       '#open' => TRUE,
-      '#description' => $this->t('You need to first create an Emercoin ID App (at such as <a href="@emercoinid-dev">@emercoinid-dev</a>)', array('@emercoinid-dev' => 'https://id.emercoin.net')),
+      '#description' => $this->t('You need to first create an Emercoin ID App (at <a href="@emercoinid-dev">@emercoinid-dev</a>)', array('@emercoinid-dev' => 'https://oauth.authorizer.io')),
     );
 
     $form['emc_settings']['app_id'] = array(
