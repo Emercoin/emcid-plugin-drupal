@@ -63,38 +63,6 @@ class EmercoinIDSettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $emc_config = $this->config('emercoin_id.settings');
 
-    $form['emc_server_settings'] = array(
-      '#type' => 'details',
-      '#title' => $this->t('Server Settings'),
-      '#open' => TRUE,
-    );
-
-    $form['emc_server_settings']['auth_page'] = array(
-      '#type' => 'textfield',
-      '#required' => TRUE,
-      '#title' => $this->t('Auth Page'),
-      '#description' => $this->t('Emercoin ID Auth Page (example: https://id.emercoin.net/oauth/v2/auth)'),
-      '#default_value' => $emc_config->get('auth_page'),
-    );
-
-    $form['emc_server_settings']['token_page'] = array(
-      '#type' => 'textfield',
-      '#required' => TRUE,
-      '#title' => $this->t('Token Page'),
-      '#description' => $this->t('Emercoin ID Token Page (example: https://id.emercoin.net/oauth/v2/token)'),
-      '#default_value' => $emc_config->get('token_page'),
-    );
-
-    $form['emc_server_settings']['infocard'] = array(
-      '#type' => 'textfield',
-      '#required' => TRUE,
-      '#title' => $this->t('Infocard Page'),
-      '#description' => $this->t('Emercoin ID Infocard Page (example: https://id.emercoin.net/infocard)'),
-      '#default_value' => $emc_config->get('infocard'),
-    );
-
-    //////////////////////////////
-
     $form['emc_settings'] = array(
       '#type' => 'details',
       '#title' => $this->t('App settings'),
@@ -185,9 +153,6 @@ class EmercoinIDSettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
     $this->config('emercoin_id.settings')
-      ->set('auth_page', $values['auth_page'])
-      ->set('token_page', $values['token_page'])
-      ->set('infocard', $values['infocard'])
       ->set('app_id', $values['app_id'])
       ->set('app_secret', $values['app_secret'])
       ->set('post_login_path', $values['post_login_path'])
