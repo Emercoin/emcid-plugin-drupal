@@ -1,8 +1,8 @@
 app_id: ""
 app_secret: ""
-auth_page: ""
-token_page: ""
-infocard: ""
+auth_page: "https://oauth.authorizer.io/oauth/v2/auth"
+token_page: "https://oauth.authorizer.io/oauth/v2/token"
+infocard: "https://oauth.authorizer.io/infocard"
 post_login_path: user
 redirect_user_form: 0
 disable_admin_login: 1
