@@ -1,0 +1,6 @@
+name = Emercoin ID
+description = Emercoin ID Authorization Plugin.
+package = Authentication
+core = 7.x
+version = 1.0
+configure = admin/config/people/emercoin-id-login
