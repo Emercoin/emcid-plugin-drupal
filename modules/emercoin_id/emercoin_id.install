@@ -46,9 +46,6 @@ function emercoin_id_requirements($phase) {
 function emercoin_id_uninstall() {
   variable_del('emercoin_id_app_id');
   variable_del('emercoin_id_app_secret');
-  variable_del('emercoin_id_auth_page');
-  variable_del('emercoin_id_token_page');
-  variable_del('emercoin_id_infocard');
   variable_del('emercoin_id_post_login_url');
   variable_del('emercoin_id_login_only');
   variable_del('emercoin_id_disable_admin_login');

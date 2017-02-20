@@ -5,6 +5,10 @@
  *  Hook implementations for Emercoin ID module.
  */
 
+const AUTH_PAGE  = 'https://oauth.authorizer.io/oauth/v2/auth';
+const TOKEN_PAGE = 'https://oauth.authorizer.io/oauth/v2/token';
+const INFOCARD   = 'https://oauth.authorizer.io/infocard';
+
 /**
  * Implements hook_help().
  */
@@ -74,7 +78,7 @@ function emercoin_id_redirect_to_emc() {
         ]
     );
 
-    $emc_login_url = variable_get('emercoin_id_auth_page', 0) . '?' . $authQuery;
+    $emc_login_url = AUTH_PAGE . '?' . $authQuery;
 
     // Redirect the user to Facebook for login.
     drupal_goto($emc_login_url);
@@ -90,7 +94,7 @@ function emercoin_id_redirect_to_emc() {
  */
 function emercoin_id_return_from_emc() {
     if (array_key_exists('code', $_REQUEST) && array_key_exists('state', $_REQUEST) && !array_key_exists('error', $_REQUEST )) {
-        $connect = variable_get('emercoin_id_token_page', 0);
+        $connect = TOKEN_PAGE;
         global $base_url;
 
         $opts = [
@@ -125,7 +129,7 @@ function emercoin_id_return_from_emc() {
         $response = json_decode($response, true);
 
         if (!array_key_exists('error', $response)) {
-            $infocard_url = variable_get('emercoin_id_infocard', 0);
+            $infocard_url = INFOCARD;
             $infocard_url .= '/'.$response['access_token'];
 
             $opts = [

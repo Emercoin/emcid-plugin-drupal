@@ -5,37 +5,8 @@
  * Administration page callbacks for the Emercoin ID login module.
  */
 function emercoin_id_api_keys_settings($form, &$form_state) {
-  drupal_set_message(t('Installation and configuration instructions can be found at <a href="@url">@url</a>', array('@url' => 'https://github.com/Emercoin/emcid-plugin-drupal')));
-  drupal_set_message(t('Also check <a href="@url">Drupal account settings</a>', array('@url' => url('admin/config/people/accounts'))));
-
-    $form['emc_server_settings'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Server Settings'),
-    );
-
-    $form['emc_server_settings']['emercoin_id_auth_page'] = array(
-        '#type' => 'textfield',
-        '#required' => TRUE,
-        '#title' => t('Auth Page'),
-        '#description' => t('Emercoin ID Auth Page (example: https://id.emercoin.net/oauth/v2/auth)'),
-        '#default_value' => variable_get('emercoin_id_auth_page', NULL),
-    );
-
-    $form['emc_server_settings']['emercoin_id_token_page'] = array(
-        '#type' => 'textfield',
-        '#required' => TRUE,
-        '#title' => t('Token Page'),
-        '#description' => t('Emercoin ID Token Page (example: https://id.emercoin.net/oauth/v2/token)'),
-        '#default_value' => variable_get('emercoin_id_token_page', NULL),
-    );
-
-    $form['emc_server_settings']['emercoin_id_infocard'] = array(
-        '#type' => 'textfield',
-        '#required' => TRUE,
-        '#title' => t('Infocard Page'),
-        '#description' => t('Emercoin ID Infocard Page (example: https://id.emercoin.net/infocard)'),
-        '#default_value' => variable_get('emercoin_id_infocard', NULL),
-    );
+    drupal_set_message(t('Installation and configuration instructions can be found at <a href="@url">@url</a>', array('@url' => 'https://github.com/Emercoin/emcid-plugin-drupal')));
+    drupal_set_message(t('Also check <a href="@url">Drupal account settings</a>', array('@url' => url('admin/config/people/accounts'))));
 
     $form['emc_settings'] = array(
         '#type' => 'fieldset',
