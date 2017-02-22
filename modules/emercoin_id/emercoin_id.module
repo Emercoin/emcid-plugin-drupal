@@ -5,12 +5,10 @@
  *  Hook implementations for Emercoin ID module.
  */
 
-use Drupal\Core\Routing\RouteMatchInterface;
-
 /**
  * Implements hook_help().
  */
-function emercoin_id_help($route_name, RouteMatchInterface $route_match) {
+function emercoin_id_help($route_name, $route_match) {
   switch ($route_name) {
     case 'emercoin_id.settings_form':
       $output = '<h3>' . t('Configuration instructions'). '</h3>';
@@ -23,20 +21,575 @@ function emercoin_id_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
- * Implements hook_user_load().
+ * Implements hook_menu().
  */
-function emercoin_id_user_load($users) {
-    $query = db_select('users_data', 'u')
-        ->fields('u', array('value'))
-        ->condition('u.name',   'emc_user_id', '=')
-        ->condition('u.module', 'emercoin_id', '=')
-        ->condition('u.uid',  array_keys($users)[0],  '=')
-        ->execute();
+function emercoin_id_menu() {
+  $items['user/emercoin-id-login'] = array(
+    'title' => 'Emercoin ID login',
+    'page callback' => 'emercoin_id_redirect_to_emc',
+    'access callback' => 'user_is_anonymous',
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['user/emercoin-id-login/return'] = array(
+    'title' => 'Emercoin ID login',
+    'page callback' => 'emercoin_id_return_from_emc',
+    'access callback' => 'user_is_anonymous',
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/config/people/emercoin-id-login'] = array(
+    'title' => 'Emercoin ID',
+    'description' => 'Configure your Emercoin ID App parameters and other settings for Emercoin ID login.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('emercoin_id_api_keys_settings'),
+    'access arguments' => array('administer emercoin id'),
+    'file' => 'emercoin_id.admin.inc',
+  );
+  return $items;
+}
 
-	$result = $query->fetchObject();
+/**
+ * Implements hook_permission().
+ */
+function simple_fb_connect_permission() {
+  $items = array();
+  $items['administer emercoin id'] = array(
+    'title' => "Administer Emercoin ID Login module settings"
+  );
+  return $items;
+}
 
-	if ($result) {
-		// ToDo: Output this value to Drupal user's profile somehow
-		// die('Emercoin SSL Certificate ID: ' . $result->value);
-	}
+/**
+ * Page callback for /user/emercoin-id-login.
+ *
+ * Redirects the user to Emercoin for authentication.
+ */
+function emercoin_id_redirect_to_emc() {
+    global $base_url;
+    emercoin_id_save_post_login_url();
+
+    $authQuery = http_build_query(
+        [
+            'client_id' => variable_get('emercoin_id_app_id', 0),
+            'redirect_uri' => "$base_url/user/emercoin-id-login/return",
+            'response_type' => 'code',
+        ]
+    );
+
+    $emc_login_url = variable_get('emercoin_id_auth_page', 0) . '?' . $authQuery;
+
+    // Redirect the user to Facebook for login.
+    drupal_goto($emc_login_url);
+
+    // We should never reach this point because the user was redirected.
+    return MENU_ACCESS_DENIED;
+}
+
+/**
+ * Page callback for /user/emercoin-id-login/return.
+ *
+ * Emercoin returns the user here after user has authenticated.
+ */
+function emercoin_id_return_from_emc() {
+    if (array_key_exists('code', $_REQUEST) && array_key_exists('state', $_REQUEST) && !array_key_exists('error', $_REQUEST )) {
+        $connect = variable_get('emercoin_id_token_page', 0);
+        global $base_url;
+
+        $opts = [
+            'http' => [
+                'method' => 'POST',
+                'header' => join(
+                    "\r\n",
+                    [
+                        'Content-Type: application/x-www-form-urlencoded; charset=utf-8',
+                        'Accept-Charset: utf-8;q=0.7,*;q=0.7',
+                    ]
+                ),
+                'content' => http_build_query(
+                    [
+                        'code' => $_REQUEST['code'],
+                        'client_id' => variable_get('emercoin_id_app_id', 0),
+                        'client_secret' => variable_get('emercoin_id_app_secret', 0),
+                        'grant_type' => 'authorization_code',
+                        'redirect_uri' => "$base_url/user/emercoin-id-login/return",
+                    ]
+                ),
+                'ignore_errors' => true,
+                'timeout' => 10,
+            ],
+            'ssl' => [
+                "verify_peer" => false,
+                "verify_peer_name" => false,
+            ],
+        ];
+
+        $response = @file_get_contents($connect, false, stream_context_create($opts));
+        $response = json_decode($response, true);
+
+        if (!array_key_exists('error', $response)) {
+            $infocard_url = variable_get('emercoin_id_infocard', 0);
+            $infocard_url .= '/'.$response['access_token'];
+
+            $opts = [
+                'http' => [
+                    'method' => 'GET',
+                    'ignore_errors' => true,
+                    'timeout' => 10,
+                ],
+                'ssl' => [
+                    "verify_peer" => false,
+                    "verify_peer_name" => false,
+                ],
+            ];
+            $info = @file_get_contents($infocard_url, false, stream_context_create($opts));
+            $info = json_decode($info, true);
+
+            $emc_user = [
+                'emc_user_id'   => strtolower($info['SSL_CLIENT_M_SERIAL']),
+                'email'         => isset($info['infocard']['Email'])     ? $info['infocard']['Email']     : '',
+                'first_name'    => isset($info['infocard']['FirstName']) ? $info['infocard']['FirstName'] : '',
+                'last_name'     => isset($info['infocard']['LastName'])  ? $info['infocard']['LastName']  : '',
+                'alias'         => isset($info['infocard']['Alias'])     ? $info['infocard']['Alias']     : '',
+            ];
+
+            if ( empty( $emc_user['emc_user_id'] ) ) {
+                drupal_set_message(t('Invalid User'), 'error');
+                drupal_goto('user');
+            }
+
+            if ($drupal_user = loadUserByEmcId($emc_user['emc_user_id'])) { // LOGIN
+                if (emercoin_id_login_user($drupal_user)) {
+                    $post_login_url = emercoin_id_get_post_login_url();
+                    emercoin_id_go_to_redirect_url($post_login_url);
+                } else {
+                    drupal_set_message(t("Login proccess with this EmercoinID certificate wasn't successful."), 'error');
+                    drupal_goto('user');
+                }
+            } else { // REGISTER USER
+                if ($drupal_user = emercoin_id_create_user($emc_user)) {
+                    // Log the newly created user in.
+                    if (emercoin_id_login_user($drupal_user)) {
+                        // Check if new users should be redirected to Drupal user form.
+                        if (variable_get('emercoin_id_redirect_user_form', 0)) {
+                            drupal_set_message(t("Please check your account details. Since you logged in with Emercoin ID, you don't need to update your password."));
+                            $post_login_url = 'user/' . $drupal_user->uid . '/edit';
+                            emercoin_id_go_to_redirect_url($post_login_url);
+                        }
+
+                        // Use normal post login path if user wasn't redirected to user form.
+                        $post_login_url = emercoin_id_get_post_login_url();
+                        emercoin_id_go_to_redirect_url($post_login_url);
+                    } else {
+                        // New user was created but the account is pending approval.
+                        drupal_set_message(t('You will receive an email when site administrator activates your account.'), 'warning');
+                        drupal_goto('user');
+                    }
+                } else {
+                    // User could not be created
+                    drupal_set_message(t('You will receive an email when site administrator activates your account.'), 'warning');
+                    drupal_goto('user');
+                }
+            }
+        } else {
+            drupal_set_message($response['error_description'], 'error');
+            drupal_goto('user');
+        }
+    } else {
+        drupal_set_message($_REQUEST['error_description'], 'error');
+        drupal_goto('user');
+    }
+
+    // This should never be reached, user should have been redirected already.
+    throw new AccessDeniedHttpException();
+}
+
+/**
+ * Saves post login URL to $_SESSION if it was explicitly defined.
+ */
+function emercoin_id_save_post_login_url() {
+  $destination = drupal_get_destination();
+  if (!url_is_external($destination['destination']) && $destination['destination'] != 'user/emercoin-id-login') {
+    $_SESSION['emercoin_id']['post_login_url'] = $destination['destination'];
+    // We need to unset the GET parameter so that the user will be redirected.
+    unset($_GET['destination']);
+  }
+}
+
+/**
+ * Returns the path where user should be redirected after a successful login.
+ *
+ * @return
+ *   Path where the user should be redirected after login.
+ */
+function emercoin_id_get_post_login_url() {
+  $post_login_url = variable_get('emercoin_id_post_login_url', 'user');
+
+  // If we have stored the destination to $_SESSION, use that instead.
+  if (isset($_SESSION['emercoin_id']['post_login_url'])) {
+    $post_login_url = $_SESSION['emercoin_id']['post_login_url'];
+  }
+
+  return $post_login_url;
+}
+
+
+/**
+ * Checks if Emercoin ID login is disabled for admin.
+ *
+ * @param $drupal_user
+ *   Drupal user object.
+ *
+ * @return bool
+ *   True if login is disabled for this user.
+ *   False if login is not disabled for this user.
+ */
+function emercoin_id_login_disabled_for_admin($drupal_user) {
+  // Prevent admin login if defined in module settings.
+  if ($drupal_user->uid == 1 && variable_get('emercoin_id_disable_admin_login', 1)) {
+    watchdog(
+      'emercoin_id',
+      'Emercoin ID login for user %user prevented, because it is disabled for site administrator (user 1) in module settings.',
+      array('%user' => $drupal_user->name),
+      WATCHDOG_WARNING
+    );
+    return TRUE;
+  }
+
+  // User is not admin or admin login is not disabled.
+  return FALSE;
+}
+
+/**
+ * Checks if the user has one of the login disabled roles.
+ *
+ * @param $drupal_user
+ *   Drupal user object.
+ *
+ * @return bool
+ *   True if login is disabled for one of this user's role.
+ *   False if login is not disabled for this user's roles.
+ */
+function emercoin_id_login_disabled_by_role($drupal_user) {
+  // Get module settings.
+  $roles = variable_get('emercoin_id_disabled_roles', array());
+
+  // Loop through all roles the user has.
+  foreach ($drupal_user->roles as $role) {
+    // Check if FB login is disabled for this role. Disabled roles have value > 0.
+    if (array_key_exists($role, $roles) && !empty($roles[$role])) {
+      watchdog(
+        'emercoin_id',
+        'Emercoin ID login for user %user prevented, because it is disabled for role %role in module settings.',
+        array('%user' => $drupal_user->name, '%role' => $role),
+        WATCHDOG_WARNING
+      );
+      return TRUE;
+    }
+  }
+
+  // If we didn't return TRUE already, FB login is not disabled for any of the user's roles.
+  return FALSE;
+}
+
+/**
+ * Redirects user to the desired Drupal path after login.
+ *
+ * The input parameter might contain a query parameter. This function
+ * will parse the URL and handle the query parameters correctly.
+ *
+ * @param string $post_login_url
+ *   Post login URL.
+ */
+function emercoin_id_go_to_redirect_url($post_login_url) {
+    // Extract URL parts and use it to redirect to the post login URL.
+    $url_parts = drupal_parse_url($post_login_url);
+    drupal_goto($url_parts['path'], array('query' => $url_parts['query']));
+}
+
+/**
+ * Ensures that Drupal usernames will be unique.
+ *
+ * Drupal usernames will be generated so that the user's full name on EmercoinID
+ * will become user's Drupal username. This method will check if the username
+ * is already used and appends a number until it finds the first available
+ * username.
+ *
+ * @param string $emc_name
+ *   User's full name on EmercoinID.
+ *
+ * @return string
+ *   Unique username
+ */
+function generateUniqueUsername($emc_name) {
+    $base_name = $emc_name;
+    $base_name = strtolower(trim($base_name));
+    $base_name = preg_replace('/ {1,}/', '-', $base_name);
+
+    $candidate = strlen($base_name) > 3 ? $base_name : 'emcid_' . generateSuffix();
+    $base_name = strlen($base_name) > 3 ? $base_name : 'emcid_';
+
+    while (is_object(user_load_by_name($candidate))) {
+        $candidate = $base_name . '-' . generateSuffix();
+    }
+
+    return $candidate;
+}
+
+/**
+* Generates guaranteed unique email based on Drupal login.
+*
+* @param string $email
+*   Email from certificate to check if it's already unique.
+*
+* @param string $drupal_name
+*   Drupal login name.
+*
+* @return string
+*   Unique email.
+*/
+function generateUniqueEmail($email, $drupal_name) {
+    if (is_object(user_load_by_mail($email)) || !$email) {
+        $candidate = strtolower($drupal_name);
+        $candidate = trim($candidate);
+        $candidate = preg_replace('/ {1,}/', '', $candidate);
+
+        while (is_object(user_load_by_mail("$candidate@emercoinid.local"))) {
+            $suffix = generateSuffix();
+            $candidate = "$drupal_name-$suffix";
+        }
+
+        return "$candidate@emercoinid.local";
+    } else {
+        return $email;
+    }
+}
+
+/**
+ * Generate a 5 chars string [a-z0-9]
+ *
+ * @return string
+ */
+function generateSuffix() {
+    $characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    $suffix     = '';
+
+    for ($i = 0; $i < 5; $i++) {
+        $suffix .= $characters[mt_rand(0, 35)];
+    }
+
+    return $suffix;
+}
+
+/**
+ * Logs the given user in.
+ *
+ * @param $drupal_user
+ *   A Drupal user object.
+ *
+ * @return bool
+ *   True if login was successful.
+ *   False if login was blocked.
+ */
+function emercoin_id_login_user($drupal_user) {
+  // Prevent admin login if defined in module settings.
+  if (emercoin_id_login_disabled_for_admin($drupal_user)) {
+    drupal_set_message(t('Emercoin ID login is disabled for site administrator. Please login with your local user account.'), 'error');
+    return FALSE;
+  }
+
+  // Prevent login if user has one of the roles defined in module settings.
+  if (emercoin_id_login_disabled_by_role($drupal_user)) {
+    drupal_set_message(t('Emercoin ID login is disabled for your role. Please login with your local user account.'), 'error');
+    return FALSE;
+  }
+
+  // Check that the account is active.
+  if ($drupal_user->status) {
+
+    // Do the actual login.
+    $form_state['uid'] = $drupal_user->uid;
+    user_login_submit(array(), $form_state);
+
+    // Invoke a login event if Rules module is enabled.
+    if (module_exists('rules')) {
+      rules_invoke_event('emercoin_id_login', $drupal_user);
+    }
+    // Invoke a login event if some module implements hook_emercoin_id_login.
+    module_invoke_all('emercoin_id_login', $drupal_user);
+
+    // If Boost module is used, we need to add DRUPAL_UID cookie.
+    // If this cookie is set, Boost will not serve cached pages to the user.
+    // user/emercoin-id-login/* must also be added to Boost "cache all pages except those listed".
+    if (module_exists('boost')) {
+      boost_set_cookie($drupal_user->uid);
+    }
+
+    drupal_set_message(t('You are now logged in as %username', array('%username' => $drupal_user->name)));
+    return TRUE;
+  }
+
+  // If we are still here, account is blocked.
+  drupal_set_message(t('You could not be logged in because your account %username is not active.', array('%username' => $drupal_user->name)), 'warning');
+  watchdog(
+    'emercoin_id_login',
+    'Emercoin ID login for user %user prevented. Account is blocked.',
+    array('%user' => $drupal_user->name),
+    WATCHDOG_WARNING
+  );
+
+  return FALSE;
+}
+
+
+/**
+ * Creates a new user account for an Emercoin ID user.
+ *
+ * @param array $emc_user
+ *   Array of user's Emercoin ID certificate data.
+ * @return
+ *   Drupal user account. FALSE on errors.
+ */
+function emercoin_id_create_user($emc_user) {
+  // Check if Drupal account settings allow users to register.
+  if (!variable_get('user_register', 1)) {
+    drupal_set_message(t('Creation of new accounts on this site is disabled.'), 'error');
+    watchdog(
+      'emercoin_id',
+      'Failed to create user. User registration is disabled in Drupal account settings.',
+      array(),
+      WATCHDOG_WARNING
+    );
+    return FALSE;
+  }
+
+  // Check if module settings allow users to register.
+  if (variable_get('emercoin_id_login_only', 0)) {
+    drupal_set_message(t('Only registered users can log in with Facebook.'), 'error');
+    watchdog(
+      'emercoin_id',
+      'Failed to create user. User registration is disabled in Emercoin ID login module settings.',
+      array(),
+      WATCHDOG_WARNING
+    );
+    return FALSE;
+  }
+
+  $emc_user_id = $emc_user['emc_user_id'];
+  $name        = generateUniqueUsername("{$emc_user['first_name']} {$emc_user['last_name']}");
+  $email       = generateUniqueEmail($emc_user['email'], $name);
+
+  if ($name === FALSE) {
+    watchdog(
+      'emercoin_id',
+      'Could not create new user, username contains illegal characters.',
+      array(),
+      WATCHDOG_ERROR
+    );
+    drupal_set_message(t("Username contains illegal characters."), 'error');
+    return FALSE;
+  }
+
+  // This will generate a random password. Since the user will never see this
+  // password, we can use long password to make it stronger.
+  $password = user_password(32);
+
+  // Set up the user fields
+  $fields = array(
+    'name' => $name,
+    'mail' => $email,
+    'pass' => $password,
+    'status' => variable_get('user_register', 1) == 1 ? 1 : 0,
+    'init' => $email,
+    'roles' => array(
+      DRUPAL_AUTHENTICATED_RID => 'authenticated user',
+    ),
+  );
+
+  // Set user language to current UI language.
+  if (drupal_multilingual()) {
+    global $language;
+    $fields['language'] = $language->language;
+  }
+
+  // The first parameter is left blank so a new user is created.
+  if ($account = user_save('', $fields)) {
+    // Log new user creation.
+    watchdog(
+      'emercoin_id',
+      'New user created: @username',
+      array('@username' => $name),
+      WATCHDOG_NOTICE
+    );
+
+    // Invoke a registration event if Rules module is enabled.
+    if (module_exists('rules')) {
+      rules_invoke_event('emercoin_id_registration', $account);
+    }
+    // Invoke user creation event if some module implements hook_emercoin_id_registration.
+    module_invoke_all('emercoin_id_registration', $account);
+
+    assignEmcIdToUser($account->uid, $emc_user_id);
+
+    return $account;
+  }
+
+  // Something went wrong.
+  drupal_set_message(t("Error while creating a new user account."), 'error');
+  watchdog(
+    'emercoin_id',
+    'Could not create new user.',
+    array(),
+    WATCHDOG_ERROR
+  );
+  return FALSE;
+}
+
+/**
+* Assigns emc_user_id for a user, if such record doesn't yet exist.
+*
+* @param string $user_id
+*   Drupal uid value.
+*
+* @param string $emc_user_id
+*   Emercoin ID from certificate.
+*
+* @return boolean
+*   Status of DB query.
+*/
+function assignEmcIdToUser ($user_id, $emc_user_id) {
+    $query = db_select('emercoin_id_users_data', 'u')
+            ->fields('u', array('emc_user_id'))
+            ->condition('u.uid',    $user_id,      '=')
+            ->execute();
+
+    // if these's no record for this user, we save his EMCID
+    if ( !$query->fetchObject() ) {
+        db_insert('emercoin_id_users_data')
+          ->fields(array(
+            'emc_user_id' => $emc_user_id,
+            'uid'         => $user_id,
+          ))
+          ->execute();
+    }
+
+    return true;
+}
+
+/**
+ * Loads existing Drupal user object by given emc_user_id.
+ *
+ * @param string $emc_user_id
+ *   Emercoin ID to search for.
+ *
+ * @return \Drupal\user\Entity\User|false
+ *   Drupal user account if found
+ *   False otherwise
+ */
+function loadUserByEmcId ($emc_user_id) {
+    $query = db_select('emercoin_id_users_data', 'u')
+            ->fields('u', array('uid'))
+            ->condition('u.emc_user_id', $emc_user_id, '=')
+            ->execute();
+    $result = $query->fetchObject();
+
+    return $result ? user_load($result->uid) : false;
 }

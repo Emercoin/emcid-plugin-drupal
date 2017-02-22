@@ -1,5 +1,0 @@
-name: Emercoin ID
-type: module
-description: 'Emercoin ID Authorization Plugin.'
-package: Authentication
-core: 8.x
