@@ -6,6 +6,31 @@
  */
 
 /**
+ * Implements hook_schema().
+ */
+function emercoin_id_schema() {
+  $schema['emercoin_id_users_data'] = array(
+    'description' => 'Links Drupal users and their Emercoin ID certificates.',
+    'fields' => array(
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Drupal User ID',
+      ),
+      'emc_user_id' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Emercoin Certificate ID',
+      ),
+    ),
+    'primary key' => array('uid'),
+  );
+
+  return $schema;
+}
+
+/**
  * Implements hook_requirements().
  *
  * May check that a compatible versions of Emercoin ID SDK has been installed
@@ -13,4 +38,44 @@
  */
 function emercoin_id_requirements($phase) {
   return [];
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function emercoin_id_uninstall() {
+  variable_del('emercoin_id_app_id');
+  variable_del('emercoin_id_app_secret');
+  variable_del('emercoin_id_post_login_url');
+  variable_del('emercoin_id_login_only');
+  variable_del('emercoin_id_disable_admin_login');
+  variable_del('emercoin_id_disabled_roles');
+}
+
+/**
+ * Implements hook_enable().
+ */
+function emercoin_id_enable() {
+  drupal_set_message(t('Emercoin ID login enabled. <a href="@path">Check module settings</a>.', array('@path' => url('admin/config/people/emercoin-id-login'))));
+}
+
+/**
+ * Updates disabled roles setting to use label as identifier rather than role id.
+ *
+ * This is to make the configuration transferable between environments using
+ * Features. See https://www.drupal.org/node/2653060
+ */
+function emercoin_id_update_7001() {
+  $roles = variable_get('emercoin_id_disabled_roles', array());
+
+  $updated_roles = array();
+  foreach ($roles as $rid => $value) {
+    $role = user_role_load($rid);
+
+    if (!$role || empty($value)) {
+      continue;
+    }
+    $updated_roles[$role->name] = $role->name;
+  }
+  variable_set('emercoin_id_disabled_roles', $updated_roles);
 }

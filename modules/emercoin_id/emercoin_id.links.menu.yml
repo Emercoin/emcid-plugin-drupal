@@ -1,5 +1,0 @@
-emercoin_id.settings_form:
-  title: Emercoin ID
-  description: 'Configure your Emercoin ID App parameters and other settings for Emercoin ID login.'
-  parent: user.admin_index
-  route_name: emercoin_id.settings_form
