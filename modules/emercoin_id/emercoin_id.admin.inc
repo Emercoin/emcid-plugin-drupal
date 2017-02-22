@@ -11,7 +11,7 @@ function emercoin_id_api_keys_settings($form, &$form_state) {
     $form['emc_settings'] = array(
         '#type' => 'fieldset',
         '#title' => t('App settings'),
-        '#description' => t('You need to first create an Emercoin ID App (at such as <a href="@emercoinid-dev">@emercoinid-dev</a>)', array('@emercoinid-dev' => 'https://id.emercoin.net')),
+        '#description' => t('You need to first create an Emercoin ID App (at <a href="@emercoinid-dev">@emercoinid-dev</a>)', array('@emercoinid-dev' => 'https://oauth.authorizer.io')),
     );
 
     $form['emc_settings']['emercoin_id_app_id'] = array(
